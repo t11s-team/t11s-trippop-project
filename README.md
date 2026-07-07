@@ -13,12 +13,12 @@
 
 | 이름 | GitHub | 담당 영역 |
 | --- | --- | --- |
-| 이성호 | [@github-placeholder-sungho](https://github.com/github-placeholder-sungho) | 네트워크, VPC, Terraform, 인프라 설계 |
-| 성지수 | [@github-placeholder-jisu](https://github.com/github-placeholder-jisu) | PM, 모니터링, 비용, 운영 |
-| 김건호 | [@github-placeholder-geonho](https://github.com/github-placeholder-geonho) | EKS, Kubernetes, 예약 서비스 |
-| 김재백 | [@github-placeholder-jaebaek](https://github.com/github-placeholder-jaebaek) | 이벤트/관리자 서비스, 다국어 |
-| 김채아 | [@github-placeholder-chaeah](https://github.com/github-placeholder-chaeah) | CI/CD, 프론트엔드 |
-| 이창하 | [@github-placeholder-changha](https://github.com/github-placeholder-changha) | DB, IAM, 보안 |
+| 이성호 | [@ahzldut](https://github.com/ahzldut) | 네트워크, VPC, Terraform, 인프라 설계 |
+| 김채아 | [@chaeah-kim](https://github.com/chaeah-kim) | CI/CD, 프론트엔드 |
+| 성지수 | [@Gnos01](https://github.com/Gnos01) | PM, 모니터링, 비용, 운영 |
+| 김건호 | [@KIMBBANGBBANGBBANG](https://github.com/KIMBBANGBBANGBBANG) | EKS, Kubernetes, 예약 서비스 |
+| 이창하 | [@Lee-ChangHa](https://github.com/Lee-ChangHa) | DB, IAM, 보안 |
+| 김재백 | [@teachplz](https://github.com/teachplz) | 이벤트/관리자 서비스, 다국어 |
 
 ## What We Built
 
