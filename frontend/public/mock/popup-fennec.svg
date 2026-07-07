@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420" role="img" aria-label="Mock pop-up image">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e9efe8"/>
+      <stop offset="1" stop-color="#cfdac9"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" fill="url(#g)"/>
+  <rect x="60" y="250" width="520" height="120" rx="8" fill="#b9c6b4" opacity="0.7"/>
+  <rect x="90" y="120" width="200" height="80" rx="6" fill="#ffffff" opacity="0.85"/>
+  <text x="190" y="172" font-family="Georgia, serif" font-size="34" fill="#2b2b2b" text-anchor="middle">fennec</text>
+  <text x="320" y="320" font-family="system-ui, sans-serif" font-size="18" fill="#3a5236" text-anchor="middle" opacity="0.8">Seongsu Pop-up · mock photo</text>
+  <text x="612" y="404" font-family="system-ui, sans-serif" font-size="12" fill="#5b6b56" text-anchor="end" opacity="0.7">MOCK</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" role="img" aria-label="Mock gallery photo 1">
+  <rect width="640" height="400" fill="#dfe3e1"/>
+  <rect x="40" y="220" width="560" height="120" rx="6" fill="#aeb8b3"/>
+  <rect x="70" y="250" width="150" height="60" rx="4" fill="#8d99a3"/>
+  <rect x="250" y="250" width="150" height="60" rx="4" fill="#8d99a3"/>
+  <rect x="430" y="250" width="140" height="60" rx="4" fill="#8d99a3"/>
+  <text x="320" y="120" font-family="system-ui, sans-serif" font-size="20" fill="#5a6660" text-anchor="middle">Interior — display tables (mock)</text>
+</svg>

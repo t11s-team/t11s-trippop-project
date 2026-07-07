@@ -1,0 +1,31 @@
+# Trivy 공통 설정(중앙화).
+# 여기엔 "잡마다 안 변하는 것"만 둔다. 스텝마다 달라지는 값
+# (severity / scanners / ignore-unfixed / exit-code)은 .github/workflows/security.yml에서 명시한다.
+# CLI에서도 동일하게 적용됨:  trivy fs --config trivy.yaml services/user-service
+# 설정 키 레퍼런스: https://trivy.dev/latest/docs/references/configuration/config-file/
+
+# OS 패키지 + 언어(npm) 의존성 둘 다 본다.
+pkg:
+  types:
+    - os
+    - library
+
+# 미스컨픽: 통과한 체크는 출력하지 않음(노이즈 감소). 실패만 표에 노출.
+misconfiguration:
+  include-non-failures: false
+
+# 커스텀 Rego 정책: Trivy 빌트인 체크에 더해 우리 조직 규칙을 강제한다.
+#  - check     : .rego 파일/디렉터리 경로(리포 루트 기준)
+#  - namespaces: 평가할 패키지 네임스페이스(빌트인 builtin.* 에 'user.*' 를 추가)
+# 정책 본문: trivy/policies/*.rego (package user.<group>.<id>)
+rego:
+  check:
+    - ./trivy/policies
+  namespaces:
+    - user
+
+# secret: 기본 룰 사용(별도 설정 없음). 오탐 억제는 .trivyignore.yaml 또는 코드 인라인 `# trivy:ignore:<id>` 로.
+
+# 라이선스 분류: 카피레프트(GPL/AGPL 등)를 위험으로 본다(상용 SaaS 법무 리스크).
+license:
+  full: true

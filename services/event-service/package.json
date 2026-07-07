@@ -1,0 +1,16 @@
+{
+  "name": "event-service-node",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node main.js",
+    "test": "node --check main.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.22.1",
+    "mysql2": "^3.22.3",
+    "uuid": "^9.0.0",
+    "prom-client": "^15.1.3"
+  }
+}

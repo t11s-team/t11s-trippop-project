@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: trippop-apps
+  namespace: trippop
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [reservation, event, user, admin]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      # app 라벨을 service 타깃 라벨로 복사.
+      # 미설정 시 PromQL by(service)·Slack 템플릿의 service가 빈 값.
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_service_label_app]
+          targetLabel: service

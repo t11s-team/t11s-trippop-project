@@ -1,0 +1,5 @@
+/* Entry stylesheet — composes the design system in cascade order. */
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/components.css";
+@import "./styles/screens.css";

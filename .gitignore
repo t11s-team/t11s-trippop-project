@@ -1,0 +1,84 @@
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Personal-only planning/docs.
+# Team-shareable Terraform code should live outside these paths.
+기획서/
+private/
+personal/
+local-notes/
+*.local.md
+
+# Terraform local/runtime files
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
+tfdestroy
+tfdestroy-*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform lock files are intentionally not ignored.
+# Commit .terraform.lock.hcl once the team repository policy is decided.
+
+# AWS and SSH secrets
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+kubeconfig
+*.kubeconfig
+k8s/aws-auth/aws-auth.yaml
+k8s/base/secret.yaml
+기획서/보안/*.csv
+기획서/보안/*accessKeys*
+기획서/보안/*credentials*
+기획서/보안/*:Zone.Identifier
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+!.vscode/extensions.json
+
+# Node.js
+node_modules/
+npm-debug.log*
+# Terraform binaries
+windows_386/
+*.exe
+/.terraform.lock.hcl
+# Dependency folders
+node_modules/
+
+# Environment variables
+.env
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local Terraform helper scripts
+terraform-*.sh
+terraform-*.cron
+scripts/sync-github-actions-secrets.sh
+
+# Harness files
+.agents/
+.codex/
+_workspace/
+AGENTS.md

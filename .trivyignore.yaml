@@ -1,0 +1,21 @@
+# Trivy 억제(triage) 목록 — "숨김"이 아니라 "문서화된 위험 수용".
+# 여기 적은 항목은 기본 결과/게이트에서 빠지고, `trivy ... --show-suppressed`로 사유와 함께 다시 볼 수 있음.
+# 원칙: HIGH/CRITICAL은 ① 수정 or ② 근거를 적고 여기에 수용 — 둘 중 하나만 허용.
+# expired_at 지나면 다시 노출되어 재평가를 강제함.
+
+# [취약점 위험 수용은 OpenVEX로 이관] — vex/k-culture.openvex.json
+#   - CVE-2026-33671 (picomatch ReDoS): not_affected / vulnerable_code_not_in_execute_path
+#   적용:  trivy ... --vex vex/k-culture.openvex.json   (CI는 TRIVY_VEX 환경변수로 자동 적용)
+#   .trivyignore 대비 장점: 표준(OpenVEX)이라 외부 도구/감사자가 동일 근거로 검증 가능(포터블).
+# vulnerabilities 블록은 Trivy 전용 빠른 억제가 필요할 때만 사용. 신규 수용은 가급적 VEX로.
+
+# vulnerabilities:
+#   - id: CVE-XXXX-XXXXX
+#     statement: ...
+#     expired_at: 2026-12-31  # snake_case! 지나면 다시 노출되어 재평가 강제
+
+# misconfigurations:
+#   - id: AVD-XXX-XXXX
+#     statement: ...
+# secrets:
+#   - id: ...

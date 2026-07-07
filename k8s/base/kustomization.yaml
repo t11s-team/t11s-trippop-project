@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 1. 스캔할 매니페스트 파일 목록 (M3: admin-base.yaml 추가)
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - user-base.yaml
+  - event-base.yaml
+  - reservation-base.yaml
+  - admin-base.yaml
+  - integrated-ingress.yaml
+
+# 2. GitHub Actions가 이 주소들을 인식해서 태그를 해시값으로 덮어씁니다.
+images:
+  - name: ECR_REGISTRY_PLACEHOLDER/t11s-dev-ecr-reservation-service
+    newTag: tmp-sha
+  - name: ECR_REGISTRY_PLACEHOLDER/t11s-dev-ecr-event-service
+    newTag: tmp-sha
+  - name: ECR_REGISTRY_PLACEHOLDER/t11s-dev-ecr-user-service
+    newTag: tmp-sha
+  - name: ECR_REGISTRY_PLACEHOLDER/t11s-dev-ecr-admin-service
+    newTag: tmp-sha

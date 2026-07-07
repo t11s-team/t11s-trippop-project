@@ -1,0 +1,23 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://k-culture-platform/vex/k-culture",
+  "author": "K-Culture Platform Security",
+  "role": "Project Security Lead",
+  "timestamp": "2026-06-19T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-33671",
+        "description": "picomatch ReDoS via crafted extglob patterns"
+      },
+      "products": [
+        { "@id": "pkg:npm/picomatch" }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Dev-only build dependency (vite -> tinyglobby -> picomatch). Not shipped in runtime images (Dockerfile uses npm ci --omit=dev; frontend ships a static bundle only). Build tooling globs trusted inputs only, so there is no attacker-controlled extglob path. Re-evaluate and remove this statement when an upstream patched picomatch is released.",
+      "timestamp": "2026-06-19T00:00:00Z"
+    }
+  ]
+}

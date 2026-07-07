@@ -1,0 +1,196 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: trippop-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+
+  # 가용성 (1개)
+  - name: trippop.availability
+    interval: 30s
+    rules:
+      - alert: PodCrashLoopBackOff
+        expr: |
+          kube_pod_container_status_waiting_reason{namespace="trippop",reason="CrashLoopBackOff"} == 1
+        for: 2m
+        labels:
+          severity: fatal
+          team: trippop
+        annotations:
+          summary: "Pod CrashLoopBackOff - {{ $labels.pod }}"
+          description: "{{ $labels.pod }}가 반복 실패로 백오프 상태. 1회 재시작과 구분."
+
+  # 골든 시그널 (3개)
+  - name: trippop.golden-signals
+    interval: 30s
+    rules:
+      - alert: High5xxRate
+        expr: |
+          (sum(rate(http_requests_total{namespace="trippop",status=~"5.."}[5m]))
+            / sum(rate(http_requests_total{namespace="trippop"}[5m]))) > 0.05
+        for: 2m
+        labels:
+          severity: error
+          team: trippop
+        annotations:
+          summary: "5xx 장애율 5% 초과"
+          description: "현재 {{ $value | humanizePercentage }}. 409 충돌은 정합성 정상 결과로 별도 분리."
+
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le, service) (
+              rate(http_request_duration_seconds_bucket{namespace="trippop"}[5m])
+            )
+          ) > 1
+        for: 3m
+        labels:
+          severity: warning
+          team: trippop
+        annotations:
+          summary: "p99 레이턴시 1초 초과 - {{ $labels.service }}"
+          description: "histogram bucket 기반 p99 = {{ $value | printf \"%.2f\" }}s"
+
+      - alert: HPAMaxReplicas
+        expr: |
+          kube_horizontalpodautoscaler_status_current_replicas{namespace="trippop"}
+          == kube_horizontalpodautoscaler_spec_max_replicas{namespace="trippop"}
+        for: 3m
+        labels:
+          severity: warning
+          team: trippop
+        annotations:
+          summary: "HPA 최대 replica 도달 - {{ $labels.horizontalpodautoscaler }}"
+          description: "확장 여력 소진. 즉시 장애 아님. 런북에서 latency/5xx 함께 해석."
+
+  # 앱 자원 (2개)
+  - name: trippop.app-resources
+    interval: 30s
+    rules:
+      - alert: AppPodCPUHigh
+        expr: |
+          sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="trippop",container!=""}[5m]))
+            / sum by (pod) (kube_pod_container_resource_limits{namespace="trippop",resource="cpu"})
+          > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          team: trippop
+        annotations:
+          summary: "앱 Pod CPU limit 대비 80% 초과 - {{ $labels.pod }}"
+          description: "container CPU / limit = {{ $value | humanizePercentage }}"
+
+      - alert: AppPodMemoryHigh
+        expr: |
+          sum by (pod) (container_memory_working_set_bytes{namespace="trippop",container!=""})
+            / sum by (pod) (kube_pod_container_resource_limits{namespace="trippop",resource="memory"})
+          > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          team: trippop
+        annotations:
+          summary: "앱 Pod 메모리 limit 대비 85% 초과 - {{ $labels.pod }}"
+          description: "working set / limit = {{ $value | humanizePercentage }}"
+
+  # EKS 노드 자원 (3개)
+  - name: trippop.node-resources
+    interval: 30s
+    rules:
+      - alert: NodeDiskUsageHigh
+        expr: |
+          (
+            (1 - (node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}
+                / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"})) > 0.80
+          )
+          or
+          (
+            node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} < 5368709120
+          )
+        for: 5m
+        labels:
+          severity: warning
+          team: trippop
+        annotations:
+          summary: "EKS 노드 디스크 80% 초과 또는 여유 5GiB 미만 - {{ $labels.instance }}"
+          description: "사용률 또는 절대 여유 용량 기준. 작은 디스크에서 % 함정 방지."
+
+      - alert: NodeDiskUsageCritical
+        expr: |
+          (
+            (1 - (node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"}
+                / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"})) > 0.90
+          )
+          or
+          (
+            node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} < 2147483648
+          )
+        for: 2m
+        labels:
+          severity: fatal
+          team: trippop
+        annotations:
+          summary: "EKS 노드 디스크 90% 초과 - kubelet eviction 임박 - {{ $labels.instance }}"
+          description: "DiskPressure로 Pod 축출 시작 가능."
+
+      - alert: NodeMemoryPressure
+        expr: |
+          kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
+        for: 1m
+        labels:
+          severity: error
+          team: trippop
+        annotations:
+          summary: "EKS 노드 메모리 압박 - {{ $labels.node }}"
+          description: "kubelet이 실제 압박 상태로 판단. Pod 선제 종료 가능."
+
+  # DB EC2 SPOF (3개)
+  - name: trippop.db-spof
+    interval: 30s
+    rules:
+      - alert: DBDiskCritical
+        expr: |
+          (
+            (1 - (node_filesystem_avail_bytes{instance="db-ec2",mountpoint="/mnt/production_db_data"}
+                / node_filesystem_size_bytes{instance="db-ec2",mountpoint="/mnt/production_db_data"})) > 0.90
+          )
+          or
+          (
+            node_filesystem_avail_bytes{instance="db-ec2",mountpoint="/mnt/production_db_data"} < 2147483648
+          )
+        for: 2m
+        labels:
+          severity: fatal
+          team: trippop
+          service: db
+        annotations:
+          summary: "DB EC2 데이터 디스크 90% 초과 (SPOF)"
+          description: "단일 DB EC2의 EBS 가득참. 전체 서비스 정지 직전."
+
+      - alert: DBMemoryCritical
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes{instance="db-ec2"}
+              / node_memory_MemTotal_bytes{instance="db-ec2"})) > 0.80
+        for: 5m
+        labels:
+          severity: error
+          team: trippop
+          service: db
+        annotations:
+          summary: "DB EC2 메모리 80% 초과 (t3.medium 4GiB, SPOF)"
+          description: "MySQL 메모리 압박→swap→디스크 I/O→latency 연쇄 위험."
+
+      - alert: DBSwapUsed
+        expr: |
+          rate(node_vmstat_pswpout{instance="db-ec2"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: fatal
+          team: trippop
+          service: db
+        annotations:
+          summary: "DB EC2 swap 발생 (SPOF)"
+          description: "MySQL 메모리 압박의 명확한 신호. 성능 급락 임박."

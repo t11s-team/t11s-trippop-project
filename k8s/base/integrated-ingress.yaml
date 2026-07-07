@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k-culture-integrated-ingress
+  namespace: trippop
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/group.name: k-culture-group
+    alb.ingress.kubernetes.io/healthcheck-path: /health/live
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: API_ACM_CERTIFICATE_ARN_PLACEHOLDER
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+spec:
+  ingressClassName: alb
+  rules:
+    - host: API_DOMAIN_NAME_PLACEHOLDER
+      http:
+        paths:
+          - path: /reservations
+            pathType: Prefix
+            backend:
+              service:
+                name: reservation-svc
+                port:
+                  number: 3001
+          - path: /events
+            pathType: Prefix
+            backend:
+              service:
+                name: event-svc
+                port:
+                  number: 3002
+          - path: /users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-svc
+                port:
+                  number: 3003
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: reservation-svc
+                port:
+                  number: 3001

@@ -1,0 +1,24 @@
+# gp3 기본 StorageClass (모니터링 스택 PVC용)
+# 선행 조건: aws-ebs-csi-driver addon (infra/modules/eks-addons).
+#   provisioner ebs.csi.aws.com 가 없으면 PVC가 Pending에서 멈춤.
+#
+# 적용:
+#   kubectl apply -f k8s/storageclass-gp3.yaml
+#   # 기존 default(gp2)의 default 표시 해제 (default 2개 충돌 방지)
+#   kubectl patch storageclass gp2 \
+#     -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+# 파드가 스케줄된 AZ에 볼륨을 생성해 AZ 불일치(다중 AZ 노드그룹)로 인한
+# 마운트 실패를 방지한다.
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+parameters:
+  type: gp3
+  encrypted: "true"

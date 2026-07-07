@@ -1,0 +1,485 @@
+/* Reusable UI primitives shared across screens. */
+
+/* ---------- App shell (mobile-first, full viewport) ---------- */
+/* Dropped the rounded "phone card" look but kept a subtle outer shadow so the
+   app area reads as a distinct surface against the page background, instead of
+   bleeding into white. Corners stay square. */
+.phone {
+  position: relative;
+  width: 100%;
+  max-width: var(--phone-w);
+  height: 100svh; /* fixed height so phone__body scrolls internally and the
+                     footer (BottomNav) stays pinned to the bottom */
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* On wider viewports the body shows a faint backdrop and the app gets a soft
+   edge shadow on both sides — like the reference UI. */
+@media (min-width: 460px) {
+  .phone {
+    box-shadow: 0 0 0 1px var(--line), 0 8px 40px rgba(13, 17, 23, 0.10);
+  }
+}
+
+/* Soft green ambient gradient used on the auth screens */
+.phone--auth {
+  background:
+    radial-gradient(120% 60% at 100% 0%, var(--brand-100) 0%, transparent 55%),
+    radial-gradient(120% 60% at 0% 100%, var(--brand-100) 0%, transparent 55%),
+    var(--surface);
+}
+
+/* The scroll area must NOT clip the sticky footer, so overflow lives here. */
+.phone__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.phone__body.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* The body is a flex column, so its direct children default to flex-shrink:1.
+   When content is tall (many events, the detail gallery) or the viewport is
+   short, flexbox would squeeze fixed-size blocks — the 280px detail hero, the
+   hero banner, category icons — instead of letting the area scroll. Pinning
+   children to their natural height makes them keep their size and the body
+   scroll, fixing the "objects resize with content/zoom" bug.
+   `flex:1` blocks (.auth, .placeholder) still grow because only shrink is locked. */
+.phone__body > * {
+  flex-shrink: 0;
+}
+
+/* ---------- Status bar ---------- */
+.statusbar {
+  height: 44px;
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-6);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.statusbar__icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: var(--r-pill);
+  padding: 16px 22px;
+  transition: background 0.15s ease, transform 0.06s ease, opacity 0.15s ease;
+  width: 100%;
+}
+.btn:active {
+  transform: scale(0.99);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn--primary {
+  background: var(--brand-600);
+  color: #fff;
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--brand-700);
+}
+.btn--ghost {
+  background: var(--surface);
+  color: var(--brand-700);
+  border: 1px solid var(--line-strong);
+}
+.btn--ghost:hover {
+  background: var(--surface-2);
+}
+.btn--sm {
+  width: auto;
+  padding: 9px 16px;
+  font-size: 14px;
+}
+
+/* ---------- Text fields ---------- */
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  padding: 0 16px;
+  height: 58px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field:focus-within {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px var(--brand-100);
+}
+.field--error {
+  border-color: var(--danger);
+}
+.field__icon {
+  color: var(--ink-400);
+  flex: 0 0 auto;
+  display: flex;
+}
+.field__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  color: var(--ink-900);
+  min-width: 0;
+}
+.field__input::placeholder {
+  color: var(--ink-400);
+}
+.field__toggle {
+  color: var(--ink-400);
+  display: flex;
+  padding: 4px;
+}
+.field-error {
+  color: var(--danger);
+  font-size: 13px;
+  margin-top: 6px;
+  padding-left: 4px;
+}
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-700);
+  margin: 0 0 6px 4px;
+}
+
+/* ---------- Chips / pills ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-700);
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.chip:hover {
+  border-color: var(--brand-300);
+}
+.chip--active {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  color: #fff;
+}
+.chip--outline-active {
+  border-color: var(--brand-500);
+  color: var(--brand-700);
+  background: var(--brand-50);
+}
+/* Theme chips: pill-shaped, green-outlined at rest, solid green when selected */
+.chip--theme {
+  border-radius: var(--r-pill);
+  border-color: var(--brand-300);
+  color: var(--brand-700);
+  background: var(--surface);
+}
+.chip--theme.chip--on {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  color: #fff;
+}
+
+/* ---------- Badges ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+.badge--popup {
+  background: var(--ink-900);
+  color: #fff;
+}
+.badge--lime {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
+.badge--soft {
+  background: var(--surface);
+  color: var(--brand-700);
+  border: 1px solid var(--line);
+}
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+/* ---------- Bottom navigation (floating pill, always visible) ---------- */
+/* The shell (.phone) has a fixed height and .phone__body scrolls internally,
+   so this footer stays pinned to the bottom automatically — no scrolling to
+   reach it. It floats as a rounded pill per the reference mockup. */
+.bottomnav {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 0 12px 12px;
+  padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: 0 -4px 18px rgba(13, 17, 23, 0.06), 0 8px 22px rgba(13, 17, 23, 0.08);
+}
+.bottomnav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-400);
+  padding: 4px 10px;
+  flex: 1;
+}
+.bottomnav__item--active {
+  color: var(--brand-600);
+}
+
+/* ---------- Language selector ---------- */
+.lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: var(--ink-900);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(var(--phone-w) - 48px);
+}
+.toast--error {
+  background: var(--danger);
+}
+
+/* ---------- Modal / bottom sheet ---------- */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(13, 17, 23, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet {
+  width: 100%;
+  max-width: var(--phone-w);
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  max-height: 92%;
+  display: flex;
+  flex-direction: column;
+  animation: sheet-up 0.22s ease;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.sheet__handle {
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  margin: 10px auto 4px;
+}
+.sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 22px 4px;
+}
+.sheet__body {
+  padding: 8px 22px 16px;
+  overflow-y: auto;
+}
+.sheet__footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 22px calc(20px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+}
+/* Filter footer buttons are rounded rectangles, not full pills (per mockup) */
+.sheet__footer .btn {
+  border-radius: var(--r-md);
+}
+
+/* ---------- Misc ---------- */
+.divider {
+  height: 1px;
+  background: var(--line);
+  border: none;
+  margin: 0;
+}
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--ink-900);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------- LangSelect dropdown ---------- */
+/* The wrapper is the positioning context for the absolute menu below. */
+.lang-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  /* inset-inline-end:0 makes the menu hug the right edge in LTR and the
+     left edge in RTL automatically. Avoids a manual [dir="rtl"] override. */
+  inset-inline-end: 0;
+  z-index: 50;
+  min-width: 160px;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.lang-menu li {
+  list-style: none;
+}
+
+.lang-menu__item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--ink-900);
+  font-size: 14px;
+  /* Use text-align:start so RTL languages align to the right automatically. */
+  text-align: start;
+}
+
+.lang-menu__item:hover,
+.lang-menu__item:focus-visible {
+  background: var(--surface-2, #f5f5f7);
+}
+
+.lang-menu__item--active {
+  font-weight: 700;
+  color: var(--brand-700);
+}
+
+.lang-menu__code {
+  min-width: 28px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-400);
+  letter-spacing: 0.04em;
+}
+
+.lang-menu__name {
+  flex: 1;
+}
+
+/* ---------- screen-head: title + LangSelect on the right ---------- */
+/* The page-level header bar. We now show a LangSelect inline with the H1. */
+.screen-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ---------- detail hero — actions cluster on the right ---------- */
+.detail__hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- RTL adjustments ---------- */
+/* CSS Logical Properties handle most of the layout flip automatically
+   (margin-inline, padding-inline, inset-inline-*). The rules below are for
+   icons whose visual meaning is directional. */
+
+[dir="rtl"] .icon-btn svg,
+[dir="rtl"] .lang-menu__item svg,
+[dir="rtl"] .auth__back svg,
+[dir="rtl"] .btn__end svg,
+[dir="rtl"] .section-head-link svg {
+  /* Mirror chevrons and arrows so "next/forward" still points the reading
+     direction. We skip svg with [data-no-flip] for things like checkmarks. */
+}
+
+[dir="rtl"] [data-flip-icon],
+[dir="rtl"] .icon-flip-rtl {
+  transform: scaleX(-1);
+}

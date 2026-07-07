@@ -1,0 +1,371 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+    inputs:
+      deploy_only:
+        description: "이미 빌드된 이미지 태그로 EKS/S3 배포만 수행"
+        required: false
+        default: false
+        type: boolean
+      run_monitoring:
+        description: "CD 성공 후 모니터링 Helm 스택 설치 workflow 실행"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+  actions: write
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  S3_FRONTEND_BUCKET: ${{ secrets.S3_FRONTEND_BUCKET }}
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+  API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME }}
+  FRONTEND_DOMAIN_NAME: ${{ secrets.FRONTEND_DOMAIN_NAME }}
+  API_ACM_CERTIFICATE_ARN: ${{ secrets.API_ACM_CERTIFICATE_ARN }}
+
+jobs:
+  # 1단계: 각 서비스 이미지를 병렬로 빌드/푸시한다.
+  build-push:
+    name: Build and Push ${{ matrix.service.name }}
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy_only != true }}
+
+    strategy:
+      matrix:
+        service:
+          - name: reservation-service
+            port: 3001
+          - name: event-service
+            port: 3002
+          - name: user-service
+            port: 3003
+          - name: admin-service
+            port: 3004
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Validate CD secrets
+        run: |
+          for name in ECR_REGISTRY; do
+            if [[ -z "${!name}" ]]; then
+              echo "${name} secret is empty. Run scripts/sync-github-actions-secrets.sh after terraform apply."
+              exit 1
+            fi
+          done
+
+      - name: Check if image already exists in ECR
+        id: check-image
+        run: |
+          REPO="t11s-dev-ecr-${{ matrix.service.name }}"
+          TAG="${{ github.sha }}"
+
+          set +e
+          DESCRIBE_OUTPUT=$(aws ecr describe-images \
+            --repository-name "$REPO" \
+            --image-ids imageTag="$TAG" \
+            --region ${{ env.AWS_REGION }} 2>&1)
+          DESCRIBE_EXIT=$?
+          set -e
+
+          if [ "$DESCRIBE_EXIT" -eq 0 ]; then
+            echo "Image $REPO:$TAG already exists in ECR. Skipping build and push."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif echo "$DESCRIBE_OUTPUT" | grep -q "ImageNotFoundException"; then
+            echo "Image $REPO:$TAG not found. Will build and push."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Failed to check ECR image existence."
+            echo "$DESCRIBE_OUTPUT"
+            exit "$DESCRIBE_EXIT"
+          fi
+
+      - name: Build Docker image
+        if: steps.check-image.outputs.exists == 'false'
+        run: |
+          docker build \
+            -t ${{ env.ECR_REGISTRY }}/t11s-dev-ecr-${{ matrix.service.name }}:${{ github.sha }} \
+            ./services/${{ matrix.service.name }}
+
+      - name: Push Docker image
+        if: steps.check-image.outputs.exists == 'false'
+        run: |
+          docker push \
+            ${{ env.ECR_REGISTRY }}/t11s-dev-ecr-${{ matrix.service.name }}:${{ github.sha }}
+
+  # 2단계: 모든 빌드가 완료된 후, 3개 서비스 태그를 모두 변경하고 한 번만 배포한다.
+  # 이전 구조에서는 각 matrix Job이 자기 서비스만 태그를 바꾸고 전체를 apply해서,
+  # 마지막 Job이 나머지 서비스를 tmp-sha로 덮어쓰는 경쟁 조건이 있었다.
+  deploy-backend:
+    name: Deploy Backend to EKS
+    runs-on: ubuntu-latest
+    needs: build-push
+    if: ${{ always() && (needs.build-push.result == 'success' || needs.build-push.result == 'skipped') }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Install kustomize
+        run: |
+          KUSTOMIZE_VERSION=v5.4.3
+          curl -fsSL -o kustomize.tar.gz \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          tar -xzf kustomize.tar.gz
+          sudo mv kustomize /usr/local/bin/
+          kustomize version
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name t11s-dev-eks
+
+      - name: Verify backend images exist
+        run: |
+          for name in ECR_REGISTRY API_DOMAIN_NAME FRONTEND_DOMAIN_NAME API_ACM_CERTIFICATE_ARN; do
+            if [[ -z "${!name}" ]]; then
+              echo "${name} secret is empty. Run scripts/sync-github-actions-secrets.sh after terraform apply."
+              exit 1
+            fi
+          done
+
+          for SERVICE in reservation-service event-service user-service admin-service; do
+            REPO="t11s-dev-ecr-${SERVICE}"
+            TAG="${{ github.sha }}"
+
+            aws ecr describe-images \
+              --repository-name "$REPO" \
+              --image-ids imageTag="$TAG" \
+              --region ${{ env.AWS_REGION }} > /dev/null
+
+            echo "Verified $REPO:$TAG"
+          done
+
+      - name: Render Kubernetes runtime values
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          replacements = {
+              "ECR_REGISTRY_PLACEHOLDER": os.environ["ECR_REGISTRY"],
+              "API_DOMAIN_NAME_PLACEHOLDER": os.environ["API_DOMAIN_NAME"],
+              "API_ACM_CERTIFICATE_ARN_PLACEHOLDER": os.environ["API_ACM_CERTIFICATE_ARN"],
+              "FRONTEND_ORIGIN_PLACEHOLDER": f"https://{os.environ['FRONTEND_DOMAIN_NAME']}",
+          }
+
+          for path in Path("k8s/base").glob("*.yaml"):
+              text = path.read_text()
+              for old, new in replacements.items():
+                  text = text.replace(old, new)
+              path.write_text(text)
+
+          leftovers = []
+          for path in Path("k8s/base").glob("*.yaml"):
+              text = path.read_text()
+              for old in replacements:
+                  if old in text:
+                      leftovers.append(f"{path}:{old}")
+
+          if leftovers:
+              print("Unrendered placeholders remain:")
+              print("\n".join(leftovers))
+              raise SystemExit(1)
+          PY
+
+          echo "=== Rendered ingress host/certificate ==="
+          grep -E 'certificate-arn|host:' k8s/base/integrated-ingress.yaml
+
+      - name: Update all image tags
+        run: |
+          cd k8s/base
+
+          kustomize edit set image \
+            ${{ env.ECR_REGISTRY }}/t11s-dev-ecr-reservation-service=${{ env.ECR_REGISTRY }}/t11s-dev-ecr-reservation-service:${{ github.sha }} \
+            ${{ env.ECR_REGISTRY }}/t11s-dev-ecr-event-service=${{ env.ECR_REGISTRY }}/t11s-dev-ecr-event-service:${{ github.sha }} \
+            ${{ env.ECR_REGISTRY }}/t11s-dev-ecr-user-service=${{ env.ECR_REGISTRY }}/t11s-dev-ecr-user-service:${{ github.sha }} \
+            ${{ env.ECR_REGISTRY }}/t11s-dev-ecr-admin-service=${{ env.ECR_REGISTRY }}/t11s-dev-ecr-admin-service:${{ github.sha }}
+
+          echo "=== Updated kustomization.yaml ==="
+          cat kustomization.yaml
+
+      - name: Update CORS origins
+        run: |
+          if [[ -z "${CLOUDFRONT_DISTRIBUTION_ID}" ]]; then
+            echo "CLOUDFRONT_DISTRIBUTION_ID secret is empty."
+            echo "Run scripts/sync-github-actions-secrets.sh after terraform apply, then rerun CD."
+            exit 1
+          fi
+
+          CLOUDFRONT_DOMAIN="$(aws cloudfront get-distribution \
+            --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --query "Distribution.DomainName" \
+            --output text)"
+
+          if [[ -z "${CLOUDFRONT_DOMAIN}" || "${CLOUDFRONT_DOMAIN}" == "None" ]]; then
+            echo "Failed to resolve CloudFront domain for distribution ${CLOUDFRONT_DISTRIBUTION_ID}."
+            exit 1
+          fi
+
+          CORS_ORIGIN="https://${FRONTEND_DOMAIN_NAME},https://${CLOUDFRONT_DOMAIN}"
+          sed -i -E "s#CORS_ORIGIN: \".*\"#CORS_ORIGIN: \"${CORS_ORIGIN}\"#" k8s/base/configmap.yaml
+
+          echo "=== Updated configmap.yaml ==="
+          grep 'CORS_ORIGIN' k8s/base/configmap.yaml
+
+      - name: Apply Kubernetes DB Secret
+        run: |
+          kubectl apply -f k8s/base/namespace.yaml
+          scripts/apply-kculture-db-secret.sh
+
+      - name: Guard against tmp-sha deployment
+        run: |
+          if grep -q "tmp-sha" k8s/base/kustomization.yaml; then
+            echo "run kustomize edit set image first"
+            exit 1
+          fi
+
+
+      - name: Deploy to EKS
+        run: |
+          kubectl apply -k k8s/base
+
+      - name: Update API Route53 record
+        env:
+          ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID || vars.ROUTE53_HOSTED_ZONE_ID }}
+          ROUTE53_UPDATE_REQUIRED: "true"
+          API_RECORD_NAME: ${{ secrets.API_DOMAIN_NAME }}
+        run: |
+          bash scripts/update-api-route53-record.sh
+
+      - name: Wait for backend rollout
+        run: |
+          kubectl rollout status deployment/event-api -n trippop --timeout=300s
+          kubectl rollout status deployment/reservation-api -n trippop --timeout=300s
+          kubectl rollout status deployment/user-api -n trippop --timeout=300s
+          kubectl rollout status deployment/admin-api -n trippop --timeout=300s
+
+  deploy-frontend:
+    name: Deploy Frontend to S3
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate frontend CD secrets
+        run: |
+          for name in API_DOMAIN_NAME S3_FRONTEND_BUCKET CLOUDFRONT_DISTRIBUTION_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "${name} secret is empty. Run scripts/sync-github-actions-secrets.sh after terraform apply."
+              exit 1
+            fi
+          done
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name t11s-dev-eks
+
+      - name: Get ALB DNS
+        run: |
+          ALB_DNS=$(kubectl get ingress k-culture-integrated-ingress \
+            -n trippop \
+            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+          echo "ALB_DNS=$ALB_DNS" >> $GITHUB_ENV
+
+          echo "Detected ALB DNS:"
+          echo "$ALB_DNS"
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./frontend
+        # U1 수정: VITE_USE_MOCK=false 가 없으면 운영 번들이 mock 모드로 빌드되어
+        #          실제 백엔드를 호출하지 않는다.
+        # U2 수정: API_BASE 는 ALB '루트'여야 한다. 코드가 이미 /reservations, /events,
+        #          /users 경로를 붙이고 ingress도 같은 prefix로 라우팅하므로,
+        #          base에 경로를 또 넣으면 /users/users/... 처럼 중복되어 404가 난다.
+        env:
+          VITE_USE_MOCK: "false"
+          VITE_RESERVATION_API: https://${{ secrets.API_DOMAIN_NAME }}
+          VITE_EVENT_API: https://${{ secrets.API_DOMAIN_NAME }}
+          VITE_USER_API: https://${{ secrets.API_DOMAIN_NAME }}
+        run: npm run build
+
+      - name: Deploy frontend to S3
+        run: |
+          aws s3 sync \
+            ./frontend/dist \
+            s3://${{ env.S3_FRONTEND_BUCKET }} \
+            --delete
+
+      # S3 sync만으로는 CloudFront 엣지 캐시가 갱신되지 않으므로 배포 후 무효화한다.
+      # CLOUDFRONT_DISTRIBUTION_ID secret이 아직 없으면(초기 단계) 스킵한다.
+      - name: Invalidate CloudFront cache
+        if: ${{ env.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ env.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*"
+
+  trigger-monitoring:
+    name: Trigger Monitoring Stack
+    runs-on: ubuntu-latest
+    needs: deploy-frontend
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_monitoring == true }}
+
+    steps:
+      - name: Trigger monitoring workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run install-helm-stack.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.ref_name }}"

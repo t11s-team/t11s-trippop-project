@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Grafana sidecar(monitoring-values.yaml: label=grafana_dashboard, labelValue="1",
+# searchNamespace: ALL)가 자동 임포트하도록 대시보드 JSON을 ConfigMap으로 감싼다.
+#  - JSON은 반드시 레거시(classic) 대시보드 모델이어야 한다. 신형
+#    dashboard.grafana.app/v2 봉투(apiVersion/kind/metadata/spec)는 파일
+#    프로비저너가 거부한다. UI에서 수정한 대시보드는
+#    scripts/export-grafana-dashboards-legacy.sh 로 레거시 모델로 재추출해 커밋한다.
+#  - searchNamespace: ALL 이라 어느 ns 든 라벨만 맞으면 로드된다. base 에서 항상
+#    생성되는 trippop ns 에 두어 monitoring ns 생성 순서에 의존하지 않게 한다.
+#  - disableNameSuffixHash: JSON 변경 시 같은 이름으로 갱신 → 옛 ConfigMap이 안 남는다.
+#  - ConfigMap 로 관리하므로 Grafana 파드가 재시작되어도(영구저장소 없어도) 자동 복구된다.
+#    → 매일 destroy/apply 해도 git의 JSON에서 그대로 복원된다(별도 API import 불필요).
+namespace: trippop
+
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    grafana_dashboard: "1"
+
+configMapGenerator:
+  - name: trippop-demo-dashboard
+    files:
+      - trippop-demo.json

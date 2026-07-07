@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  mariadb-server:
+    image: mariadb:10.11
+    container_name: mariadb-server
+    # MariaDB 10.11 서버 기본 charset이 latin1이라 명시 고정 — 시드/클라이언트 mojibake 방지
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    profiles: ["local"] # 테라폼 자동화 및 로컬 실행 시 명시적 호출
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    # 호스트 3306 이 이미 사용 중이면 DB_HOST_PORT 로 변경 (컨테이너 간 통신은 영향 없음)
+    ports: ["${DB_HOST_PORT:-3306}:3306"]
+    volumes:
+      # EBS 마운트 경로(/mnt/production_db_data) 내부나 로컬 프로젝트 내부에서 데이터 유지를 위한 바인딩
+      - ./mysql_data:/var/lib/mysql
+      - ./scripts/db_init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./scripts/db_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  admin-service:
+    build: ./services/admin-service 
+    ports: ["3004:3004"]
+    environment:
+      - DB_HOST=${DB_HOST:-mariadb-server} # 호스트명을 mariadb-server로 변경
+      - DB_PORT=3306
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - DB_CONN_LIMIT=${DB_CONN_LIMIT}
+      - AWS_REGION=${AWS_REGION}
+      # 다국어 자동 번역: 자격증명이 있으면 AWS Translate, 없으면 mock 폴백
+      - TRANSLATE_PROVIDER=${TRANSLATE_PROVIDER:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+    # depends_on 제거 (Admin EC2 환경 배려)
+
+  reservation-service:
+    build: ./services/reservation-service
+    ports: ["3001:3001"]
+    environment:
+      - DB_HOST=${DB_HOST:-mariadb-server}
+      - DB_PORT=3306
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - DB_CONN_LIMIT=${DB_CONN_LIMIT}
+      - AWS_REGION=${AWS_REGION}
+
+  event-service:
+    build: ./services/event-service
+    ports: ["3002:3002"]
+    environment:
+      - DB_HOST=${DB_HOST:-mariadb-server}
+      - DB_PORT=3306
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - DB_CONN_LIMIT=${DB_CONN_LIMIT}
+      - AWS_REGION=${AWS_REGION}
+
+  user-service:
+    build: ./services/user-service
+    ports: ["3003:3003"]
+    environment:
+      - DB_HOST=${DB_HOST:-mariadb-server}
+      - DB_PORT=3306
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - DB_CONN_LIMIT=${DB_CONN_LIMIT}
+      - AWS_REGION=${AWS_REGION}
+      

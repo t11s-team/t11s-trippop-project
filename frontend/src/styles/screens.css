@@ -1,0 +1,943 @@
+/* Screen-specific layout. Kept thin — primitives live in components.css. */
+
+/* ============ AUTH (Sign In / Sign Up) ============ */
+.auth {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 28px 28px;
+}
+.auth__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 36px;
+}
+.auth__topbar--back {
+  justify-content: space-between;
+}
+.auth__logo {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 28px 0 10px;
+}
+.auth__logo .pop {
+  color: var(--brand-600);
+}
+.auth__title {
+  font-size: 30px;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+.auth__subtitle {
+  font-size: 16px;
+  color: var(--ink-400);
+  margin-bottom: 30px;
+}
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.auth__forgot {
+  align-self: flex-end;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-700);
+  margin-top: -2px;
+}
+.auth__submit {
+  margin-top: 12px;
+  position: relative;
+}
+/* Keep the label centered while the action icon sits at the far right */
+.btn__end {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+}
+.auth__trust {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  color: var(--ink-600);
+  font-size: 14px;
+}
+.auth__trust-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-pill);
+  background: var(--brand-100);
+  color: var(--brand-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.auth__foot {
+  margin-top: auto;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 15px;
+  color: var(--ink-400);
+}
+.auth__foot a {
+  color: var(--brand-700);
+  font-weight: 700;
+  margin-left: 4px;
+}
+.auth__back {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -8px;
+  color: var(--ink-900);
+}
+
+/* ============ HOME ============ */
+.home__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 20px 8px;
+}
+.home__brand {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink-900);
+}
+.home__brand .pop {
+  color: var(--brand-600);
+}
+.home__header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* Hero with background banner */
+.home__hero {
+  position: relative;
+  margin-bottom: 4px;
+  overflow: hidden;
+}
+.home__hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url("/assets/popups/main_title.png");
+  background-size: cover;
+  background-position: center right;
+  opacity: 0.28;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.6) 60%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 0.6) 60%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+}
+.home__intro {
+  position: relative;
+  padding: 4px 20px 10px;
+}
+.home__intro h1 {
+  font-size: 21px;
+  line-height: 1.25;
+  margin-bottom: 4px;
+}
+.home__intro p {
+  color: var(--ink-600);
+  font-size: 13.5px;
+  max-width: 78%;
+}
+
+/* Promo banner — lime-toned per the reference UI.
+   The reference shows a soft lime gradient (not the brand green we had).
+   "NO KOREAN PHONE NEEDED" pill is dark-on-white, sitting on the lime field. */
+.promo {
+  margin: 4px 20px 8px;
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, #e6f7c2 0%, #d4f095 100%);
+  padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.promo__tag {
+  margin-bottom: 6px;
+}
+.promo__title {
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--ink-900); /* dark on lime, like the mock */
+  font-weight: 800;
+  max-width: 65%;
+}
+.promo__limited {
+  position: absolute;
+  top: 11px;
+  right: -34px;
+  transform: rotate(45deg);
+  background: var(--brand-600);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 40px;
+}
+.promo__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 9px;
+  gap: 12px;
+}
+.promo__count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-700);
+  font-weight: 600;
+}
+.promo__time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--ink-900);
+}
+
+/* Search row */
+.searchbar {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px 6px;
+}
+.searchbar__input {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 0 16px;
+  height: 46px;
+}
+.searchbar__input input {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  font-size: 14px;
+  color: var(--ink-900);
+  min-width: 0;
+}
+.searchbar__filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  height: 46px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  font-weight: 700;
+  color: var(--ink-700);
+  font-size: 14px;
+}
+
+/* Category tabs */
+.cats {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 14px 20px 6px;
+}
+.cat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-600);
+  flex: 0 0 auto;
+}
+.cat__ic {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-md);
+  background: var(--brand-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-600);
+  transition: all 0.15s ease;
+}
+.cat--active .cat__ic {
+  background: var(--brand-600);
+  color: #fff;
+}
+.cat--active {
+  color: var(--brand-700);
+}
+
+/* Section header */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 10px;
+}
+.section-head h2 {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-head a {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-700);
+}
+
+/* ============ HOT Pop-ups — horizontal card carousel ============ */
+/* Cards are vertical rectangles (image on top, info below) and the list
+   scrolls horizontally. This matches the reference UI where a card peeks
+   in from the right edge to hint "swipe for more". */
+.ticket-list {
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  padding: 4px 20px 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 20px;
+  -webkit-overflow-scrolling: touch;
+  /* Hide the horizontal scrollbar (rules also in .no-scrollbar utility). */
+  scrollbar-width: none;
+}
+.ticket-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Vertical card */
+.ticket {
+  flex: 0 0 78%;
+  max-width: 280px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: 0 1px 3px rgba(13, 17, 23, 0.04), 0 6px 16px rgba(13, 17, 23, 0.05);
+  overflow: hidden;
+  text-align: start;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ticket:active {
+  transform: scale(0.99);
+}
+
+/* Top media area */
+.ticket__stub {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-3);
+}
+.ticket__stub img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* "Available" pill (top-left of the image) */
+.ticket__avail {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink-900);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.ticket__avail.is-soldout {
+  background: var(--ink-900);
+  color: #fff;
+}
+/* Save heart (top-right of the image) */
+.ticket__save {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-700);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Info area below the image */
+.ticket__body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ticket__tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ink-400);
+  text-transform: uppercase;
+}
+.ticket__title {
+  font-size: 16px;
+  margin: 2px 0 0;
+  color: var(--ink-900);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ticket__desc {
+  font-size: 13px;
+  color: var(--ink-600);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}
+/* Metadata rows (date / location) — stacked, icon + text */
+.ticket__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--ink-600);
+}
+.ticket__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.ticket__meta-row span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Footer divider + "N left" + Reserve CTA */
+.ticket__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  gap: 8px;
+}
+.ticket__left {
+  font-size: 12px;
+  color: var(--ink-400);
+  font-weight: 600;
+}
+.ticket__left.is-soldout {
+  color: var(--danger);
+}
+.ticket__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--brand-600);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+}
+.ticket__cta.is-soldout {
+  background: var(--surface-3);
+  color: var(--ink-400);
+  cursor: not-allowed;
+}
+
+
+/* Standalone reservation CTA (replaces the old "Special offer" box). */
+.detail__reserve {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.detail__reserve-btn {
+  position: relative;
+}
+.detail__reserve-note {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-400);
+}
+
+/* ============ EVENT DETAIL ============ */
+
+/* Date/time slot picker. Each slot is a tappable card showing the date,
+   time, and remaining capacity. Selected slot shows the brand outline.
+   Soldout slots are disabled but still visible (so users see why a date
+   they expected isn't available). */
+.slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+.slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+.slot:hover:not(:disabled) {
+  border-color: var(--brand-300);
+}
+.slot--on {
+  border-color: var(--brand-600);
+  background: var(--brand-50);
+  box-shadow: 0 0 0 3px var(--brand-100);
+}
+.slot--soldout {
+  background: var(--surface-2);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.slot__when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.slot__date {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+.slot__time {
+  font-size: 13px;
+  color: var(--ink-600);
+  font-variant-numeric: tabular-nums;
+}
+.slot__cap {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-700);
+  background: var(--brand-50);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.slot--on .slot__cap {
+  background: var(--brand-600);
+  color: #fff;
+}
+.slot__cap.is-soldout {
+  background: var(--surface-3);
+  color: var(--ink-400);
+}
+
+.detail__hero {
+  position: relative;
+  height: 280px;
+  background: var(--surface-3);
+}
+.detail__hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.detail__hero-top {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+}
+.detail__sheet {
+  margin-top: -20px;
+  background: var(--surface);
+  border-radius: 22px 22px 0 0;
+  position: relative;
+  padding: 22px 20px 0;
+}
+.detail__title {
+  font-size: 26px;
+  margin: 12px 0 6px;
+}
+.detail__subtitle {
+  color: var(--ink-400);
+  font-size: 15px;
+  margin-bottom: 18px;
+}
+/* Main image — shown at the end of the 이벤트 상세 body */
+.detail__main {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--r-lg);
+  background: var(--surface-3);
+  margin: 4px 0 0;
+}
+/* Full body copy (이벤트 상세) — preserve the source line breaks */
+.detail__about-text {
+  white-space: pre-line;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-600);
+  margin-bottom: 14px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+}
+.info-row__ic {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+  color: var(--brand-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.info-row__text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.detail__section {
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+}
+.detail__section:first-of-type {
+  border-top: none;
+}
+.detail__section h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.detail__section p {
+  color: var(--ink-600);
+  font-size: 15px;
+}
+
+/* Special offers card — deal text + icons on the left, big reserve CTA on the right */
+.offer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--brand-50);
+  border: 1px solid var(--brand-200);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  min-height: 96px;
+}
+.offer__info {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  flex: 0 0 auto;
+  color: var(--brand-800);
+}
+.offer__deal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.offer__icons {
+  display: flex;
+  gap: 12px;
+  color: var(--brand-700);
+}
+.offer__cta {
+  flex: 1;
+}
+
+/* Map */
+.map {
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.map img {
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+}
+.map__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+.map__addr h4 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.map__addr p {
+  font-size: 13px;
+  color: var(--ink-400);
+}
+
+/* Gallery */
+.gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.gallery img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+}
+
+/* ============ FILTER SHEET ============ */
+.filter__group {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.filter__group:last-child {
+  border-bottom: none;
+}
+.filter__group h3 {
+  font-size: 17px;
+  margin-bottom: 12px;
+}
+.filter__group h3 .opt {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-400);
+  margin-left: 6px;
+}
+.filter__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.filter__date {
+  margin-top: 10px;
+}
+.filter__loc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  padding: 14px;
+}
+.filter__loc-ic {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+  color: var(--brand-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.filter__loc h4 {
+  font-size: 15px;
+}
+.filter__loc p {
+  font-size: 13px;
+  color: var(--ink-400);
+}
+.filter__use-loc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--brand-700);
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 10px;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.check-box {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 2px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: #fff;
+}
+.check-box--on {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+}
+.check-row h4 {
+  font-size: 15px;
+}
+.check-row p {
+  font-size: 13px;
+  color: var(--ink-400);
+}
+
+/* ============ Simple placeholder screens (Schedule/Saved/Me) ============ */
+.placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px;
+  text-align: center;
+  color: var(--ink-400);
+}
+.placeholder__ic {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-pill);
+  background: var(--brand-50);
+  color: var(--brand-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.placeholder h2 {
+  font-size: 20px;
+}
+
+/* Reservations list */
+.screen-head {
+  padding: 8px 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.screen-head h1 {
+  font-size: 22px;
+}
+.res-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.res-item {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+}
+/* Tappable reservation row → its event detail. */
+.res-item--link {
+  text-align: start;
+  color: inherit;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.res-item--link:hover {
+  box-shadow: var(--shadow-card);
+}
+.res-item--link:active {
+  transform: scale(0.99);
+}
+.res-item img {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-md);
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.res-item__body {
+  flex: 1;
+  text-align: start;
+}
+.res-item__body h3 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.res-item__body p {
+  font-size: 13px;
+  color: var(--ink-400);
+}
+.res-status {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-700);
+  background: var(--brand-50);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+}
+
+/* Generic empty/error/loading */
+.state {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--ink-400);
+}
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--brand-100);
+  border-top-color: var(--brand-600);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

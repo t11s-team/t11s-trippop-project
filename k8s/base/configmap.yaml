@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kculture-config
+  namespace: trippop
+data:
+  DB_PORT: "3306"
+  # CD가 현재 CloudFront 기본 도메인을 조회해 이 값을 갱신한다.
+  CORS_ORIGIN: "FRONTEND_ORIGIN_PLACEHOLDER"

@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-svc
+  namespace: trippop
+  labels:
+    app: user
+spec:
+  selector:
+    app: user
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3003
+      targetPort: 3003
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-api
+  namespace: trippop
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: user
+      containers:
+      - name: user-app
+        image: ECR_REGISTRY_PLACEHOLDER/t11s-dev-ecr-user-service
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        envFrom:
+        - configMapRef:
+            name: kculture-config
+        - secretRef:
+            name: kculture-db-secrets
+        ports:
+        - containerPort: 3003
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3003
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3003
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 3003
+          failureThreshold: 30
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 30"]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: user-pdb
+  namespace: trippop
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: user

@@ -1,0 +1,19 @@
+# 의존성 — 이미지 안에서 npm ci로 재설치하므로 제외
+node_modules
+npm-debug.log*
+yarn-error.log*
+
+# 시크릿/VCS — 빌드 컨텍스트에 절대 넣지 않음
+.git
+.gitignore
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+*.kubeconfig
+
+# 이미지에 불필요
+Dockerfile
+.dockerignore
+*.md

@@ -1,0 +1,219 @@
+name: Security Scan (Trivy)
+
+# 다각도(shift-left) 보안 스캔. 각 잡은 "가시성(report)" + "게이트(gate)" 2단으로 구성:
+#   - report 스텝: unfixed 포함 전체를 표로 출력 — 차단 안 함(exit 0). 현황 파악/스크린샷 소스.
+#   - gate   스텝: 고칠 수 있는(fixable) HIGH/CRITICAL만 PR 차단(exit 1). "고치라고 막는" 부분.
+# 잡 구성:
+#   - trivy-db        : 취약점 DB를 한 번만 받아 캐시에 채움(나머지 잡이 needs로 기다림).
+#   - fs-scan         : 소스/락파일 직접(빌드 전). dev 의존성·라이선스까지 본다.
+#   - image-scan      : 빌드된 4개 서비스 이미지(OS+npm 취약점, secret, Dockerfile 미스컨픽).
+#   - config-scan     : IaC(Terraform/k8s/Helm/Dockerfile/compose) 미스컨픽 + 커스텀 Rego 정책. report-only.
+#   - repo-secret-scan: 리포 전체(서비스 밖: scripts/, k6/, compose 등)의 secret. report-only.
+# 공통 설정은 리포 루트 trivy.yaml, 위험 수용은 .trivyignore.yaml + vex/k-culture.openvex.json 참고.
+# (Security 탭 SARIF 업로드는 GitHub Advanced Security 미적용으로 제거함)
+
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch: {}   # 수동 실행(첫 스캔 결과 캡처용)
+
+permissions:
+  contents: read
+
+# trivy-action 버전은 의도적으로 v0.36.0 고정(공급망 안정). 태그에 'v' 접두사 필수.
+# 새 버전: https://github.com/aquasecurity/trivy-action/releases
+#
+# DB 캐시: Trivy 취약점 DB는 GHCR에서 받는데, 매트릭스로 여러 잡이 동시에 당기면
+# rate-limit에 걸려 CI가 산발적으로 깨진다. trivy-db 잡이 캐시를 먼저 채우고(needs),
+# 각 잡은 TRIVY_CACHE_DIR(.cache/trivy)를 복원해 재다운로드 없이 돈다. 키는 날짜별(매일 갱신).
+
+jobs:
+  # ── 0) 취약점 DB 캐시 워밍 ─────────────────────────────────────────────────
+  # 캐시에 오늘자 DB가 없을 때만 1회 다운로드. 이후 모든 스캔 잡이 이 캐시를 공유.
+  trivy-db:
+    name: Warm Trivy DB cache
+    runs-on: ubuntu-latest
+    env:
+      TRIVY_CACHE_DIR: .cache/trivy
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Compute cache date
+        id: date
+        run: echo "date=$(date +%F)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Trivy DB
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: .cache/trivy
+          key: trivy-db-${{ steps.date.outputs.date }}
+
+      # 캐시 미스일 때만: 가벼운 스캔 1회로 DB를 받아 .cache/trivy 에 채운다(결과는 버림).
+      - name: Populate DB cache (on miss)
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: services/user-service
+          scanners: vuln
+          exit-code: '0'
+          format: table
+
+  # ── 1) 소스/락파일 직접 스캔 ────────────────────────────────────────────────
+  # 빌드 전에 가장 먼저 돈다. 이미지 스캔과 달리 dev 의존성·전체 락파일을 본다.
+  fs-scan:
+    name: Source scan - ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    needs: trivy-db
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - services/reservation-service
+          - services/event-service
+          - services/user-service
+          - services/admin-service
+          - frontend
+    env:
+      # picomatch 등 "문서화된 위험 수용"은 OpenVEX로 적용(런타임 무관). 게이트엔 영향 없음(unfixed).
+      TRIVY_VEX: vex/k-culture.openvex.json
+      TRIVY_CACHE_DIR: .cache/trivy
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Restore Trivy DB cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .cache/trivy
+          key: trivy-db-restore
+          restore-keys: trivy-db-
+
+      # (가시성) unfixed + 라이선스 포함 전체 — 차단하지 않음.
+      - name: Trivy fs (report, incl. unfixed + license)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ matrix.target }}
+          trivy-config: trivy.yaml
+          scanners: vuln,secret,license
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '0'
+          format: table
+
+      # (게이트) 고칠 수 있는 HIGH/CRITICAL만 차단.
+      - name: Trivy fs (gate, fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ matrix.target }}
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+  # ── 2) 컨테이너 이미지 스캔 ────────────────────────────────────────────────
+  image-scan:
+    name: Image scan - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: trivy-db
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [reservation-service, event-service, user-service, admin-service]
+    env:
+      TRIVY_VEX: vex/k-culture.openvex.json
+      TRIVY_CACHE_DIR: .cache/trivy
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Restore Trivy DB cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .cache/trivy
+          key: trivy-db-restore
+          restore-keys: trivy-db-
+
+      - name: Build image
+        run: docker build -t ${{ matrix.service }}:scan ./services/${{ matrix.service }}
+
+      # (가시성) unfixed + Dockerfile 미스컨픽(커스텀 Rego 포함)까지.
+      - name: Trivy image (report, incl. unfixed + misconfig)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ matrix.service }}:scan
+          trivy-config: trivy.yaml
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '0'
+          format: table
+
+      # (게이트) 고칠 수 있는 HIGH/CRITICAL만 차단.
+      - name: Trivy image (gate, fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ matrix.service }}:scan
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+  # ── 3) IaC / config 미스컨픽 + 커스텀 정책 ────────────────────────────────
+  # 처음엔 report-only(exit 0). 정리되면 exit-code를 1로 올려 게이트화.
+  config-scan:
+    name: IaC / config scan (+ custom policies)
+    runs-on: ubuntu-latest
+    needs: trivy-db
+    env:
+      TRIVY_CACHE_DIR: .cache/trivy
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Restore Trivy DB cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .cache/trivy
+          key: trivy-db-restore
+          restore-keys: trivy-db-
+
+      - name: Trivy config (table, report-only)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          trivy-config: trivy.yaml      # rego.check(./trivy/policies) + namespaces(user) 포함
+          severity: HIGH,CRITICAL
+          exit-code: '0'
+          format: table
+
+  # ── 4) 리포 전체 secret 스캔 ──────────────────────────────────────────────
+  # 서비스 디렉터리 밖(scripts/, k6/, docker-compose.yml 등)에 박힌 secret을 잡는다.
+  # 주의: working tree만 본다(git 히스토리 X). 히스토리 검사는 pre-commit의 detect-secrets 담당.
+  repo-secret-scan:
+    name: Repo-wide secret scan
+    runs-on: ubuntu-latest
+    needs: trivy-db
+    env:
+      TRIVY_CACHE_DIR: .cache/trivy
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Restore Trivy DB cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .cache/trivy
+          key: trivy-db-restore
+          restore-keys: trivy-db-
+
+      - name: Trivy fs secret (whole repo, report-only)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          exit-code: '0'
+          format: table

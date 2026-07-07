@@ -1,0 +1,189 @@
+# kube-prometheus-stack values override
+# 5/26 설치 — 최소 설정 + Slack 알람 (#alerts)
+
+# ============================================================
+# CRD / Admission Webhook
+# ============================================================
+# CRD는 클러스터에 이미 존재하는 것을 전제로 확인 후 설치한다.
+# admission webhook hook이 EKS Actions 환경에서 pending-install로 멈춘 이력이 있어
+# 데모 환경에서는 비활성화한다. PrometheusRule 문법 검증은 별도 manifest 검토로 보완한다.
+crds:
+  enabled: false
+
+prometheusOperator:
+  tls:
+    enabled: false
+  admissionWebhooks:
+    enabled: false
+
+# ============================================================
+# Alertmanager — Slack 4단계 분기 + 가이드 v3 포맷
+# ============================================================
+alertmanager:
+  alertmanagerSpec:
+    # webhook URL을 파일로 마운트 (env 노출 회피)
+    secrets:
+      - alertmanager-slack-webhook
+
+    # silence/notification 상태 영속화 (PVC). 미설정 시 재시작에 silence 소실.
+    # gp3 StorageClass + aws-ebs-csi-driver 선행 필요 (k8s/storageclass-gp3.yaml).
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 2Gi
+
+  config:
+    global:
+      resolve_timeout: 5m
+
+    route:
+      group_by: ['alertname', 'service']
+      group_wait: 10s
+      group_interval: 30s
+      repeat_interval: 4h
+      receiver: 'slack-default'
+      routes:
+        - matchers:
+            - severity = "fatal"
+          receiver: 'slack-fatal'
+          group_wait: 0s
+          repeat_interval: 1h
+          continue: false
+        - matchers:
+            - severity = "error"
+          receiver: 'slack-error'
+          continue: false
+        - matchers:
+            - severity = "warning"
+          receiver: 'slack-warn'
+          continue: false
+
+    receivers:
+      - name: 'slack-default'
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/alertmanager-slack-webhook/url'
+            channel: '#alerts'
+            send_resolved: true
+            title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts -}}
+              `[{{ (.StartsAt.Add 32400000000000).Format "2006-01-02 15:04:05" }}]` `[{{ or .Labels.service "-" }}]` `[{{ .Labels.severity | toUpper }}]` {{ .Annotations.summary }}
+              {{ .Annotations.description }}
+              {{ end }}
+
+      - name: 'slack-fatal'
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/alertmanager-slack-webhook/url'
+            channel: '#alerts'
+            send_resolved: true
+            color: 'danger'
+            title: ':rotating_light: <!here> [FATAL] {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts -}}
+              `[{{ (.StartsAt.Add 32400000000000).Format "2006-01-02 15:04:05" }}]` `[{{ or .Labels.service "-" }}]` `[FATAL]` {{ .Annotations.summary }}
+              > {{ .Annotations.description }}
+              {{ end }}
+
+      - name: 'slack-error'
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/alertmanager-slack-webhook/url'
+            channel: '#alerts'
+            send_resolved: true
+            color: 'danger'
+            title: ':warning: [ERROR] {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts -}}
+              `[{{ (.StartsAt.Add 32400000000000).Format "2006-01-02 15:04:05" }}]` `[{{ or .Labels.service "-" }}]` `[{{ .Labels.severity | toUpper }}]` {{ .Annotations.summary }}
+              {{ .Annotations.description }}
+              {{ end }}
+
+      - name: 'slack-warn'
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/alertmanager-slack-webhook/url'
+            channel: '#alerts'
+            send_resolved: false
+            color: 'warning'
+            title: ':bell: [WARN] {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts -}}
+              `[{{ (.StartsAt.Add 32400000000000).Format "2006-01-02 15:04:05" }}]` `[{{ or .Labels.service "-" }}]` `[WARN]` {{ .Annotations.summary }}
+              {{ end }}
+
+# ============================================================
+# Grafana — admin 비밀번호 자동 생성 + sidecar 활성화
+# ============================================================
+grafana:
+  adminPassword: ""
+  service:
+    type: ClusterIP
+
+  # 대시보드는 Git의 ConfigMap에서 복구하므로 AZ에 고정되는 EBS PVC를 사용하지 않는다.
+  persistence:
+    enabled: false
+
+  # ConfigMap 매니페스트로 등록한 대시보드를 자동 임포트
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      folder: /tmp/dashboards
+      provider:
+        foldersFromFilesStructure: true
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      searchNamespace: ALL
+
+# ============================================================
+# Prometheus — ServiceMonitor/Rule 자동 발견 + DB EC2 scrape
+# ============================================================
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+    ruleNamespaceSelector: {}
+
+    # TSDB 보존 정책. retentionSize는 PVC 용량보다 작게 두어 디스크 풀 방지.
+    retention: 15d
+    retentionSize: 8GB
+
+    # TSDB 영속화 (PVC). 미설정 시 emptyDir → 파드 재시작 시 메트릭 history 소실.
+    # gp3 StorageClass + aws-ebs-csi-driver 선행 필요 (k8s/storageclass-gp3.yaml).
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 10Gi
+
+    # DB EC2 exporter scrape (VPC Peering 경유)
+    additionalScrapeConfigs:
+      - job_name: 'db-ec2-node'
+        scrape_interval: 30s
+        static_configs:
+          - targets: ['172.16.10.122:9100']
+            labels:
+              instance: 'db-ec2'
+              role: 'database'
+              env: 'dev'
+
+      - job_name: 'db-ec2-mysql'
+        scrape_interval: 30s
+        static_configs:
+          - targets: ['172.16.10.122:9104']
+            labels:
+              instance: 'db-ec2'
+              role: 'database'
+              env: 'dev'

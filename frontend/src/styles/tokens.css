@@ -1,0 +1,67 @@
+/* Design tokens — derived from the TripPop mobile mockups.
+   Single source of truth for color, spacing, radius, typography. */
+:root {
+  /* Brand greens (sampled from buttons / banner in the mockups) */
+  --brand-50: #f3faf4;
+  --brand-100: #e7f5ea;
+  --brand-200: #c9e9cf;
+  --brand-300: #9ad6a6;
+  --brand-400: #62bd76;
+  --brand-500: #45a85a;
+  --brand-600: #3a9150; /* primary buttons */
+  --brand-700: #2f7d42; /* pressed / strong text */
+  --brand-800: #245f33;
+
+  /* Lime accent (the "LIMITED SLOTS" pill + banner highlight) */
+  --lime: #cdf564;
+  --lime-strong: #b6ec3d;
+  --lime-ink: #2c6b1f;
+
+  /* Neutrals */
+  --ink-900: #0d1117; /* headings */
+  --ink-700: #353b45;
+  --ink-600: #5b6470; /* body text */
+  --ink-400: #9aa1ab; /* placeholders / muted */
+  --ink-300: #c3c8ce;
+  --line: #e7e9ec;     /* hairline borders */
+  --line-strong: #d6d9dd;
+  --surface: #ffffff;
+  --surface-2: #f6f8f7;
+  --surface-3: #eef2ef;
+
+  /* Status */
+  --danger: #d64545;
+  --danger-bg: #fdecec;
+  --warn: #e89b1c;
+
+  /* Radius */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* Spacing scale (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* Shadows */
+  --shadow-card: 0 6px 18px rgba(13, 17, 23, 0.06);
+  --shadow-pop: 0 12px 32px rgba(13, 17, 23, 0.12);
+  --shadow-nav: 0 -2px 16px rgba(13, 17, 23, 0.06);
+
+  /* Layout */
+  --phone-w: 430px;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+  color-scheme: light;
+}

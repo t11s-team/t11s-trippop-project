@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-svc
+  namespace: trippop
+  labels:
+    app: admin
+spec:
+  selector:
+    app: admin
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3004
+      targetPort: 3004
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-api
+  namespace: trippop
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: admin
+      containers:
+      - name: admin-app
+        image: ECR_REGISTRY_PLACEHOLDER/t11s-dev-ecr-admin-service
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        envFrom:
+        - configMapRef:
+            name: kculture-config
+        - secretRef:
+            name: kculture-db-secrets
+        ports:
+        - containerPort: 3004
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3004
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3004
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 3004
+          failureThreshold: 30
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 30"]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: admin-pdb
+  namespace: trippop
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: admin

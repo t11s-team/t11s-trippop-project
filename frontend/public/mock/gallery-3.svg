@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" role="img" aria-label="Mock gallery photo 3">
+  <rect width="640" height="400" fill="#d7cfc7"/>
+  <rect x="0" y="0" width="640" height="260" fill="#8a5a3c" opacity="0.55"/>
+  <rect x="220" y="60" width="200" height="90" rx="6" fill="#efe9e2"/>
+  <text x="320" y="118" font-family="Georgia, serif" font-size="30" fill="#3a3027" text-anchor="middle">fennec</text>
+  <rect x="120" y="180" width="400" height="80" rx="6" fill="#3a4a55" opacity="0.5"/>
+  <text x="320" y="320" font-family="system-ui, sans-serif" font-size="20" fill="#54483d" text-anchor="middle">Storefront (mock)</text>
+</svg>
